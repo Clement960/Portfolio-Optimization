@@ -8,7 +8,7 @@ source("J:/Asset_Variance_Parity.R")
 source("J:/Ledoit-Wolf_MV-MSR.R")
 
 #Data Importation--------------------------------------------------------------------
-setwd("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Data")
+setwd("J:/Data")
 
 
 
