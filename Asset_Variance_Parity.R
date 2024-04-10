@@ -2,7 +2,7 @@
 ######################### Asset-Variance-Parity portfolio ###############################
 #########################################################################################
 
-source("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/AVP_Optimisation.R")
+source("J:/AVP_Optimisation.R")
 
 
 asset_variance_parity = function(data){
