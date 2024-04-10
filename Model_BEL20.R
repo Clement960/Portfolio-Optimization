@@ -1,480 +1,87 @@
 #Library-------------------------------------------------------------------
 pacman::p_load(netstat, RSelenium, rio,rvest,magrittr,dtplyr,forecast,DT,zoo,lubridate,hrbrthemes, data.table,arrow, seasonal,seasonalview,readxl, tools, xts,glmnet,dplyr,POET,stcov,fastICA,nlshrink,rmgarch,moments, PerformanceAnalytics, quadprog,NMOF, riskParityPortfolio, tidyquant,timetk,ggplot2,foreach,MASS,CovTools,readr,paran,factoextra,tidyverse,scales,tidyr,corrplot,reshape2,gridExtra,palmerpenguins,SciViews,dfms,boot,PeerPerformance,ggthemes)
 
+source("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Minimum_Variance.R")
+source("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Mean_Variance.R")
+source("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Equally_Weighted.R")
+source("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Asset_Variance_Parity.R")
+source("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Ledoit-Wolf_MV-MSR.R")
 
 #Data Importation--------------------------------------------------------------------
 setwd("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Data")
 
 
 
-# URL of the Investing.com page
-url <- "https://fr.investing.com/indices/bel-20-historical-data"
-
-# Read the HTML content of the webpage
-webpage <- read_html(url)
-
-# Extract the historical data table using CSS selector
-historical_data <- webpage %>%
-  html_node("#curr_table") %>%
-  html_table()
-
-
-
-#Data source: https://fr.investing.com/indices/bel-20-historical-data
-BEL20 <- fread("BEL 20 - Données Historiques (1).csv")[11:167,]
-ABI   <- fread("ABI - Données Historiques.csv")[1:97,]
-ACKB  <- fread("ACKB - Données Historiques.csv")[1:97,]
-AGES  <- fread("AGES - Données Historiques.csv")[1:97,]
-AOO   <- fread("AOO - Données Historiques.csv")[1:97,]
-APAM  <- fread("APAM - Données Historiques.csv")[1:97,]
-ARGX  <- fread("ARGX - Données Historiques.csv")[1:97,]
-BAR   <- fread("BAR - Données Historiques.csv")[1:97,]
-COFB  <- fread("COFB - Données Historiques.csv")[1:97,]
-ELI   <- fread("ELI - Données Historiques.csv")[1:97,]
-GBLB  <- fread("GBLB - Données Historiques.csv")[1:97,]
-GLPG  <- fread("GLPG - Données Historiques.csv")[1:97,]
-IETB  <- fread("IETB - Données Historiques.csv")[1:97,]
-KBC   <- fread("KBC - Données Historiques.csv")[1:97,]
-MLXS  <- fread("MLXS - Données Historiques.csv")[1:97,]
-PROX  <- fread("PROX - Données Historiques.csv")[1:97,]
-SOF   <- fread("SOF - Données Historiques.csv")[1:97,]
-SOLB  <- fread("SOLB - Données Historiques.csv")[1:97,]
-UCB   <- fread("UCB - Données Historiques.csv")[1:97,]
-UMI   <- fread("UMI - Données Historiques.csv")[1:97,]
-WDPP  <- fread("WDPP - Données Historiques.csv")[1:97,]
-
-nrow(ABI)
-nrow(ACKB)
-nrow(AGES)
-nrow(AOO)
-nrow(APAM) #144
-nrow(ARGX) #102
-nrow(BAR)
-nrow(ELI)
-nrow(GBLB)
-nrow(GLPG)
-nrow(IETB)
-nrow(KBC)
-nrow(MLXS)
-nrow(PROX)
-nrow(SOF)
-nrow(SOLB)
-nrow(UCB)
-nrow(UMI)
-nrow(WDPP)
-
-P10 = read_delim("10_Industry_Portfolios.csv",delim = ";", escape_double = FALSE, trim_ws = TRUE)
-P25 = read_delim("25_Portfolios_5x5.csv",delim = ";", escape_double = FALSE, trim_ws = TRUE)
-P48 = read_delim("48_Industry_Portfolios.csv",delim = ";", escape_double = FALSE, trim_ws = TRUE)
-P100= read_delim("100_Portfolios_10x10.csv",delim = ";", escape_double = FALSE, trim_ws = TRUE)
-
-P10 = as.matrix(sapply(P10[523:1159,2:11], as.numeric))/100
-P48 = as.matrix(sapply(P48[523:1159,2:49], as.numeric))/100
-P25 = as.matrix(sapply(P25[523:1159,2:26], as.numeric))/100
-P100= as.matrix(sapply(P100[523:1159,2:101], as.numeric))/100
-
-#########################################################################################
-######################### Minimum-variance portfolio ####################################
-#########################################################################################
-
-#Weights
-W_MV_10 = array(dim=c(10,86)) 
-W_MV_48 = array(dim=c(48,86))
-W_MV_25 = array(dim=c(25,86))
-W_MV_100= array(dim=c(100,86))
-
-a=0
-b=0
-for(i in 1:86)
-{
-  a[i]=i*6-5
-  b[i]=114+i*6
-  W_MV_10[,i] = minvar(cov(P10[a[i]:b[i],]))
-  W_MV_48[,i] = minvar(cov(P48[a[i]:b[i],]))
-  W_MV_25[,i] = minvar(cov(P25[a[i]:b[i],]))
-  W_MV_100[,i]= minvar(cov(P100[a[i]:b[i],]))
-  
-}
-
-#Returns
-R_MV_10 = array(dim=c(6,86))
-R_MV_48 = array(dim=c(6,86))
-R_MV_25 = array(dim=c(6,86))
-R_MV_100= array(dim=c(6,86))
-
-for (i in 1:86){
-  a[i]=115+i*6
-  b[i]=120+i*6
-  
-  R_MV_10[,i]<-(P10[a[i]:b[i],]%*%W_MV_10[,i])
-  R_MV_48[,i]<-(P48[a[i]:b[i],]%*%W_MV_48[,i])
-  R_MV_25[,i]<-(P25[a[i]:b[i],]%*%W_MV_25[,i])
-  R_MV_100[,i]<-(P100[a[i]:b[i],]%*%W_MV_100[,i])
-  
-}
-
-AR_MV_10 <- mean(R_MV_10)*12
-AR_MV_48 <- mean(R_MV_48)*12
-AR_MV_25 <- mean(R_MV_25)*12
-AR_MV_100<- mean(R_MV_100)*12
-
-SD_MV_10<-sd(R_MV_10)*sqrt(12)
-SD_MV_48<-sd(R_MV_48)*sqrt(12)
-SD_MV_25<-sd(R_MV_25)*sqrt(12)
-SD_MV_100<-sd(R_MV_100)*sqrt(12)
-
-SR_MV_10 = AR_MV_10/SD_MV_10  #1.00383
-SR_MV_48 = AR_MV_48/SD_MV_48  #0.9497646
-SR_MV_25 = AR_MV_25/SD_MV_25  #0.8888929
-SR_MV_100= AR_MV_100/SD_MV_100 #0.7626527
-
-
-
-
-#########################################################################################
-######################### Mean-variance portfolio #######################################
-#########################################################################################
-
-#Weights
-W_MSR_10 = array(dim=c(10,86)) 
-W_MSR_48 = array(dim=c(48,86))
-W_MSR_25 = array(dim=c(25,86))
-W_MSR_100= array(dim=c(100,86))
-
-a=0
-b=0
-for(i in 1:86)
-{
-  a[i]=i*6-5
-  b[i]=114+i*6
-  
-  W_MSR_10[,i] = (solve(cov(P10[a[i]:b[i],]))%*%colMeans(P10[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(10,1)))%*%solve(cov(P10[a[i]:b[i],]))%*%colMeans(P10[a[i]:b[i],]))
-  W_MSR_48[,i] = (solve(cov(P48[a[i]:b[i],]))%*%colMeans(P48[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(48,1)))%*%solve(cov(P48[a[i]:b[i],]))%*%colMeans(P48[a[i]:b[i],]))
-  W_MSR_25[,i] = (solve(cov(P25[a[i]:b[i],]))%*%colMeans(P25[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(25,1)))%*%solve(cov(P25[a[i]:b[i],]))%*%colMeans(P25[a[i]:b[i],]))
-  W_MSR_100[,i]= (solve(cov(P100[a[i]:b[i],]))%*%colMeans(P100[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(100,1)))%*%solve(cov(P100[a[i]:b[i],]))%*%colMeans(P100[a[i]:b[i],]))
-  
-}
-
-#Returns
-R_MSR_10 = array(dim=c(6,86))
-R_MSR_48 = array(dim=c(6,86))
-R_MSR_25 = array(dim=c(6,86))
-R_MSR_100= array(dim=c(6,86))
-
-
-for (i in 1:86){
-  a[i]=115+i*6
-  b[i]=120+i*6
-  
-  R_MSR_10[,i] = (P10[a[i]:b[i],]%*%W_MSR_10[,i])
-  R_MSR_48[,i] = (P48[a[i]:b[i],]%*%W_MSR_48[,i])
-  R_MSR_25[,i] = (P25[a[i]:b[i],]%*%W_MSR_25[,i])
-  R_MSR_100[,i]= (P100[a[i]:b[i],]%*%W_MSR_100[,i])
-  
- 
-}
-AR_MSR_10 = mean(R_MSR_10)*12
-AR_MSR_48 = mean(R_MSR_48)*12
-AR_MSR_25 = mean(R_MSR_25)*12
-AR_MSR_100= mean(R_MSR_100)*12
-
-SD_MSR_10 = sd(R_MSR_10)*sqrt(12)
-SD_MSR_48 = sd(R_MSR_48)*sqrt(12)
-SD_MSR_25 = sd(R_MSR_25)*sqrt(12)
-SD_MSR_100= sd(R_MSR_100)*sqrt(12)
-
-SR_MSR_10 = AR_MSR_10/SD_MSR_10   #0.6704312
-SR_MSR_48 = AR_MSR_48/SD_MSR_48   #0.3716232
-SR_MSR_25 = AR_MSR_25/SD_MSR_25   #1.182515
-SR_MSR_100= AR_MSR_100/SD_MSR_100 #0.0983142
-
-
-
-#########################################################################################
-######################### Equally-weighted portfolio ####################################
-#########################################################################################
-
-##Out-of-Sample
-#Weights
-W_EW_10 = matrix(1/10,  dim(P10)[2] )
-W_EW_48 = matrix(1/48,  dim(P48)[2] )
-W_EW_25 = matrix(1/25,  dim(P25)[2] )
-W_EW_100= matrix(1/100, dim(P100)[2])
-
-#Returns
-R_EW_10 = array(dim=c(6,86))
-R_EW_48 = array(dim=c(6,86))
-R_EW_25 = array(dim=c(6,86))
-R_EW_100= array(dim=c(6,86))
-
-a=0
-b=0
-for (i in 1:86){
-  a[i]=115+i*6
-  b[i]=120+i*6
-  
-  R_EW_10[,i] =(P10[a[i]:b[i],]%*%W_EW_10)
-  R_EW_48[,i] =(P48[a[i]:b[i],]%*%W_EW_48)
-  R_EW_25[,i] =(P25[a[i]:b[i],]%*%W_EW_25)
-  R_EW_100[,i]=(P100[a[i]:b[i],]%*%W_EW_100)
-  
-}
-
-AR_EW_10 = mean(R_EW_10)*12
-AR_EW_48 = mean(R_EW_48)*12
-AR_EW_25 = mean(R_EW_25)*12
-AR_EW_100= mean(R_EW_100)*12
-
-SD_EW_10 = sd(R_EW_10)*sqrt(12)
-SD_EW_48 = sd(R_EW_48)*sqrt(12)
-SD_EW_25 = sd(R_EW_25)*sqrt(12)
-SD_EW_100= sd(R_EW_100)*sqrt(12)
-
-SR_EW_10 = AR_EW_10/SD_EW_10   #0.8659715
-SR_EW_48 = AR_EW_48/SD_EW_48   #0.7782867
-SR_EW_25 = AR_EW_25/SD_EW_25   #0.7598897
-SR_EW_100= AR_EW_100/SD_EW_100 #0.6089611
-
-
-#########################################################################################
-######################### Asset-Variance-Parity portfolio ###############################
-#########################################################################################
-
-#PACKAGE METHOD
-W_AVP_10 = riskParityPortfolio(cov(P10))
-W_AVP_10 = W_AVP_10$w
-W_AVP_25 = riskParityPortfolio(cov(P25))
-W_AVP_25 = W_AVP_25$w
-W_AVP_48 = riskParityPortfolio(cov(P48))
-W_AVP_48 = W_AVP_48$w
-W_AVP_100= riskParityPortfolio(cov(P100))
-W_AVP_100= W_AVP_100$w
-
-
-#OPTIMISATION METHOD
-w_function = function(cov_matrix)
-{
-# Define the objective function
-obj_func <- function(w, cov_matrix) {
-  return(w %*% cov_matrix %*% w - sum(log(w)))
-}
-
-# Define the initial value for w
-n_assets <- ncol(cov_matrix)
-w_init <- rep(1/n_assets, n_assets)
-
-# Set the optimization control parameters
-ctrl <- list(fnscale = 1,  # minimise the objective function
-             factr = 1e-8, # absolute tolerance for convergence
-             maxit = 1000) # maximum number of iterations
-
-# Optimize the objective function subject to the constraint
-result <- optim(w_init, obj_func, cov_matrix = cov_matrix, method = "L-BFGS-B", lower = rep(0, n_assets), control = ctrl)
-
-# Extract the optimal solution
-w_optimal <- result$par/sum(result$par)
-return(w_optimal)
-
-
-
-}
-#look at the risk proportion of every asset
-W_optimal = w_function(P10)
-A =array(dim = c(1,10))
-for (i in 1:10)
-{
-  A[i] =(w_optimal[i] %*% (cov_matrix %*% w_optimal)[i])/(w_optimal %*% cov_matrix %*% w_optimal)
-  
-  
-}
-
-#Weights
-W_AVP_10 = array(dim=c(10,86)) 
-W_AVP_48 = array(dim=c(48,86))
-W_AVP_25 = array(dim=c(25,86))
-W_AVP_100= array(dim=c(100,86))
-
-a=0
-b=0
-for(i in 1:86)
-{
-  a[i]=i*6-5
-  b[i]=114+i*6
-  
-  W_AVP_10[,i] = t(w_function(cov(P10[a[i]:b[i],])))
-  W_AVP_48[,i] = t(w_function(cov(P48[a[i]:b[i],])))
-  W_AVP_25[,i] = t(w_function(cov(P25[a[i]:b[i],])))
-  W_AVP_100[,i]= t(w_function(cov(P100[a[i]:b[i],])))
-  
-}
-
-#Returns
-R_AVP_10 = array(dim=c(6,86))
-R_AVP_48 = array(dim=c(6,86))
-R_AVP_25 = array(dim=c(6,86))
-R_AVP_100= array(dim=c(6,86))
-
-for (i in 1:86){
-  a[i]=115+i*6
-  b[i]=120+i*6
-  
-  R_AVP_10[,i]<-(P10[a[i]:b[i],]%*%W_AVP_10[,i])
-  R_AVP_48[,i]<-(P48[a[i]:b[i],]%*%W_AVP_48[,i])
-  R_AVP_25[,i]<-(P25[a[i]:b[i],]%*%W_AVP_25[,i])
-  R_AVP_100[,i]<-(P100[a[i]:b[i],]%*%W_AVP_100[,i])
-  
-  
-}
-
-AR_AVP_10 = mean(R_AVP_10)*12
-AR_AVP_48 = mean(R_AVP_48)*12
-AR_AVP_25 = mean(R_AVP_25)*12
-AR_AVP_100= mean(R_AVP_100)*12
-
-SD_AVP_10 = sd(R_AVP_10)*sqrt(12)
-SD_AVP_48 = sd(R_AVP_48)*sqrt(12)
-SD_AVP_25 = sd(R_AVP_25)*sqrt(12)
-SD_AVP_100= sd(R_AVP_100)*sqrt(12)
-
-SR_AVP_10 = AR_AVP_10/SD_AVP_10   #0.9148238
-SR_AVP_48 = AR_AVP_48/SD_AVP_48   #0.8249968
-SR_AVP_25 = AR_AVP_25/SD_AVP_25   #0.7821915
-SR_AVP_100= AR_AVP_100/SD_AVP_100 #0.6668529
-
-#########################################################################################
-######################### Ledoit-Wolf Covariance Estimator ##############################
-#########################################################################################
-
-## LW mean-variance
-#weights
-
-W_LWMSR_10 = array(dim=c(10,86))
-W_LWMSR_48 = array(dim=c(48,86))
-W_LWMSR_25 = array(dim=c(25,86))
-W_LWMSR_100= array(dim=c(100,86))
-
-a=0
-b=0
-for(i in 1:86)
-{
-  a[i]=i*6-5
-  b[i]=114+i*6
-  
-  
-  "W_LWMSR_10[,i] = (solve(CovEst.2003LW((P10[a[i]:b[i],]))$S)%*%colMeans(P10[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(10,1)))%*%solve(CovEst.2003LW((P10[a[i]:b[i],]))$S)%*%colMeans(P10[a[i]:b[i],]))
-  W_LWMSR_48[,i] = (solve(CovEst.2003LW((P48[a[i]:b[i],]))$S)%*%colMeans(P48[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(48,1)))%*%solve(CovEst.2003LW((P48[a[i]:b[i],]))$S)%*%colMeans(P48[a[i]:b[i],]))
-  W_LWMSR_25[,i] = (solve(CovEst.2003LW((P25[a[i]:b[i],]))$S)%*%colMeans(P25[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(25,1)))%*%solve(CovEst.2003LW((P25[a[i]:b[i],]))$S)%*%colMeans(P25[a[i]:b[i],]))
-  W_LWMSR_100[,i]= (solve(CovEst.2003LW((P100[a[i]:b[i],]))$S)%*%colMeans(P100[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(100,1)))%*%solve(CovEst.2003LW((P100[a[i]:b[i],]))$S)%*%colMeans(P100[a[i]:b[i],]))"
-  
-  W_LWMSR_10[,i] = (solve(linshrink_cov((P10[a[i]:b[i],])))%*%colMeans(P10[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(10,1)))%*%solve(linshrink_cov((P10[a[i]:b[i],])))%*%colMeans(P10[a[i]:b[i],]))
-  W_LWMSR_48[,i] = (solve(linshrink_cov((P48[a[i]:b[i],])))%*%colMeans(P48[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(48,1)))%*%solve(linshrink_cov((P48[a[i]:b[i],])))%*%colMeans(P48[a[i]:b[i],]))
-  W_LWMSR_25[,i] = (solve(linshrink_cov((P25[a[i]:b[i],])))%*%colMeans(P25[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(25,1)))%*%solve(linshrink_cov((P25[a[i]:b[i],])))%*%colMeans(P25[a[i]:b[i],]))
-  W_LWMSR_100[,i]= (solve(linshrink_cov((P100[a[i]:b[i],])))%*%colMeans(P100[a[i]:b[i],]))/as.numeric(t(array(1,dim=c(100,1)))%*%solve(linshrink_cov((P100[a[i]:b[i],])))%*%colMeans(P100[a[i]:b[i],]))
-  
-  
-}
-
-#Returns
-R_LWMSR_10 = array(dim=c(6,86))
-R_LWMSR_48 = array(dim=c(6,86))
-R_LWMSR_25 = array(dim=c(6,86))
-R_LWMSR_100= array(dim=c(6,86))
-
-
-for (i in 1:86){
-  a[i]=115+i*6
-  b[i]=120+i*6
-  
-  R_LWMSR_10[,i] = (P10[a[i]:b[i],]%*%W_LWMSR_10[,i])
-  R_LWMSR_48[,i] = (P48[a[i]:b[i],]%*%W_LWMSR_48[,i])
-  R_LWMSR_25[,i] = (P25[a[i]:b[i],]%*%W_LWMSR_25[,i])
-  R_LWMSR_100[,i]= (P100[a[i]:b[i],]%*%W_LWMSR_100[,i])
-  
-  
-}
-AR_LWMSR_10 = mean(R_LWMSR_10)*12
-AR_LWMSR_48 = mean(R_LWMSR_48)*12
-AR_LWMSR_25 = mean(R_LWMSR_25)*12
-AR_LWMSR_100= mean(R_LWMSR_100)*12
-
-SD_LWMSR_10 = sd(R_LWMSR_10)*sqrt(12)
-SD_LWMSR_48 = sd(R_LWMSR_48)*sqrt(12)
-SD_LWMSR_25 = sd(R_LWMSR_25)*sqrt(12)
-SD_LWMSR_100= sd(R_LWMSR_100)*sqrt(12)
-
-SR_LWMSR_10 = AR_LWMSR_10/SD_LWMSR_10   #0.7163915
-SR_LWMSR_48 = AR_LWMSR_48/SD_LWMSR_48   #0.446826
-SR_LWMSR_25 = AR_LWMSR_25/SD_LWMSR_25   #1.273495
-SR_LWMSR_100= AR_LWMSR_100/SD_LWMSR_100 #1.720445
-
-boxplot(t(W_LWMSR_10), main = "Ledoit-Wolf Mean-Variance - P10")
-boxplot(t(W_LWMSR_48), main = "Ledoit-Wolf Mean-Variance - P48")
-boxplot(t(W_LWMSR_25), main = "Ledoit-Wolf Mean-Variance - P25")
-boxplot(t(W_LWMSR_100),main= "Ledoit-Wolf Mean-Variance - P100")
-
-## LW minimum-variance
-#weights
-
-W_LWMV_10 = array(dim=c(10,86))
-W_LWMV_48 = array(dim=c(48,86))
-W_LWMV_25 = array(dim=c(25,86))
-W_LWMV_100= array(dim=c(100,86))
-
-a=0
-b=0
-for(i in 1:86)
-{
-  a[i]=i*6-5
-  b[i]=114+i*6
-  
-  W_LWMV_10[,i] = minvar(linshrink_cov(((P10[a[i]:b[i],]))))
-  W_LWMV_48[,i] = minvar(linshrink_cov(((P48[a[i]:b[i],]))))
-  W_LWMV_25[,i] = minvar(linshrink_cov(((P25[a[i]:b[i],]))))
-  W_LWMV_100[,i]= minvar(linshrink_cov(((P100[a[i]:b[i],]))))
-
-  "W_LWMV_10[,i] = minvar(CovEst.2003LW(((P10[a[i]:b[i],])))$S)
-  W_LWMV_48[,i] = minvar(CovEst.2003LW(((P48[a[i]:b[i],])))$S)
-  W_LWMV_25[,i] = minvar(CovEst.2003LW(((P25[a[i]:b[i],])))$S)
-  W_LWMV_100[,i]= minvar(CovEst.2003LW(((P100[a[i]:b[i],])))$S)"
-}
-
-#Returns
-R_LWMV_10 = array(dim=c(6,86))
-R_LWMV_48 = array(dim=c(6,86))
-R_LWMV_25 = array(dim=c(6,86))
-R_LWMV_100= array(dim=c(6,86))
-
-
-for (i in 1:86){
-  a[i]=115+i*6
-  b[i]=120+i*6
-  
-  R_LWMV_10[,i] = (P10[a[i]:b[i],]%*%W_LWMV_10[,i])
-  R_LWMV_48[,i] = (P48[a[i]:b[i],]%*%W_LWMV_48[,i])
-  R_LWMV_25[,i] = (P25[a[i]:b[i],]%*%W_LWMV_25[,i])
-  R_LWMV_100[,i]= (P100[a[i]:b[i],]%*%W_LWMV_100[,i])
-  
-  
-}
-AR_LWMV_10 = mean(R_LWMV_10)*12
-AR_LWMV_48 = mean(R_LWMV_48)*12
-AR_LWMV_25 = mean(R_LWMV_25)*12
-AR_LWMV_100= mean(R_LWMV_100)*12
-
-SD_LWMV_10 = sd(R_LWMV_10)*sqrt(12)
-SD_LWMV_48 = sd(R_LWMV_48)*sqrt(12)
-SD_LWMV_25 = sd(R_LWMV_25)*sqrt(12)
-SD_LWMV_100= sd(R_LWMV_100)*sqrt(12)
-
-SR_LWMV_10 = AR_LWMV_10/SD_LWMV_10   #1.011437
-SR_LWMV_48 = AR_LWMV_48/SD_LWMV_48   #0.9585021
-SR_LWMV_25 = AR_LWMV_25/SD_LWMV_25   #0.8874716
-SR_LWMV_100= AR_LWMV_100/SD_LWMV_100 #0.773922
-
-boxplot(t(W_LWMV_10), main = "Ledoit-Wolf Mean-Variance - P10",ylim = c(0, 0.5), col = "pink1")
-boxplot(t(W_LWMV_48), main = "Ledoit-Wolf Mean-Variance - P48",ylim = c(0, 0.5))
-boxplot(t(W_LWMV_25), main = "Ledoit-Wolf Mean-Variance - P25",ylim = c(0, 0.5))
-boxplot(t(W_LWMV_100), main= "Ledoit-Wolf Mean-Variance - P100",ylim = c(0, 0.5))
+# # URL of the Investing.com page
+# url <- "https://fr.investing.com/indices/bel-20-historical-data"
+# 
+# # Read the HTML content of the webpage
+# webpage <- read_html(url)
+# 
+# # Extract the historical data table using CSS selector
+# historical_data <- webpage %>%
+#   html_node("#curr_table") %>%
+#   html_table()
+
+
+
+#Data source:--------------------------------------------------------------------
+#https://fr.investing.com/indices/bel-20-historical-data
+
+BEL20 <- read_csv("BEL 20 - Données Historiques (1).csv")[11:167,3] 
+ABI   <- read_csv("ABI - Données Historiques.csv")[1:97,3]
+ACKB  <- read_csv("ACKB - Données Historiques.csv")[1:97,3] 
+AGES  <- read_csv("AGES - Données Historiques.csv")[1:97,3] 
+AOO   <- read_csv("AOO - Données Historiques.csv")[1:97,3]  
+APAM  <- read_csv("APAM - Données Historiques.csv")[1:97,3] 
+ARGX  <- read_csv("ARGX - Données Historiques.csv")[1:97,3] 
+BAR   <- read_csv("BAR - Données Historiques.csv")[1:97,3]  
+COFB  <- read_csv("COFB - Données Historiques.csv")[1:97,3] 
+ELI   <- read_csv("ELI - Données Historiques.csv")[1:97,3]  
+GBLB  <- read_csv("GBLB - Données Historiques.csv")[1:97,3] 
+GLPG  <- read_csv("GLPG - Données Historiques.csv")[1:97,3] 
+IETB  <- read_csv("IETB - Données Historiques.csv")[1:97,3] 
+KBC   <- read_csv("KBC - Données Historiques.csv")[1:97,3]  
+MLXS  <- read_csv("MLXS - Données Historiques.csv")[1:97,3] 
+PROX  <- read_csv("PROX - Données Historiques.csv")[1:97,3] 
+SOF   <- read_csv("SOF - Données Historiques.csv")[1:97,3]  
+SOLB  <- read_csv("SOLB - Données Historiques.csv")[1:97,3] 
+UCB   <- read_csv("UCB - Données Historiques.csv")[1:97,3]  
+UMI   <- read_csv("UMI - Données Historiques.csv")[1:97,3]  
+WDPP  <- read_csv("WDPP - Données Historiques.csv")[1:97,3] 
+
+Synthetic_BEL20 <- cbind(ABI,ACKB, AGES, AOO, APAM, ARGX, BAR, COFB, ELI, GBLB, GLPG, IETB, KBC, MLXS, PROX, SOF, SOLB, UCB, UMI, WDPP )
+column_names <- c("ABI", "ACKB", "AGES", "AOO", "APAM", "ARGX", "BAR", "COFB", "ELI", "GBLB", "GLPG", "IETB", "KBC", "MLXS", "PROX", "SOF", "SOLB", "UCB", "UMI", "WDPP")
+names(Synthetic_BEL20) <- column_names
+
+
+# Calculate the percentage change for each column
+Synthetic_BEL20 <- (apply(Synthetic_BEL20, 2, function(x) {
+  diff(x) / x[-length(x)]
+}))
+
+
+
+#Minimum-variance Portfolio:--------------------------------------------------------------------
+out_MV = minimum_variance(Synthetic_BEL20)
+
+#Mean-variance Portfolio:--------------------------------------------------------------------
+out_MSR = mean_variance(Synthetic_BEL20)
+
+#Equally-Weighted Portfolio:--------------------------------------------------------------------
+out_EW = equally_weighted(Synthetic_BEL20)
+
+#Asset-Variance-Parity Portfolio:--------------------------------------------------------------------
+out_AVP = asset_variance_parity(Synthetic_BEL20)
+
+#Ledoit-Wolf Minimum-Variance Portfolio:--------------------------------------------------------------------
+out_AVP = Ledoit_wolf_MV(Synthetic_BEL20)
+
+#Ledoit-Wolf Mean-Variance Portfolio:--------------------------------------------------------------------
+out_AVP = Ledoit_wolf_MSR(Synthetic_BEL20)
+
+
+
 
 
 #########################################################################################
