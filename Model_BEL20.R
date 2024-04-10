@@ -1,11 +1,11 @@
 #Library-------------------------------------------------------------------
 pacman::p_load(netstat, RSelenium, rio,rvest,magrittr,dtplyr,forecast,DT,zoo,lubridate,hrbrthemes, data.table,arrow, seasonal,seasonalview,readxl, tools, xts,glmnet,dplyr,POET,stcov,fastICA,nlshrink,rmgarch,moments, PerformanceAnalytics, quadprog,NMOF, riskParityPortfolio, tidyquant,timetk,ggplot2,foreach,MASS,CovTools,readr,paran,factoextra,tidyverse,scales,tidyr,corrplot,reshape2,gridExtra,palmerpenguins,SciViews,dfms,boot,PeerPerformance,ggthemes)
 
-source("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Minimum_Variance.R")
-source("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Mean_Variance.R")
-source("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Equally_Weighted.R")
-source("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Asset_Variance_Parity.R")
-source("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Ledoit-Wolf_MV-MSR.R")
+source("J:/Minimum_Variance.R")
+source("J:/Mean_Variance.R")
+source("J:/Equally_Weighted.R")
+source("J:/Asset_Variance_Parity.R")
+source("J:/Ledoit-Wolf_MV-MSR.R")
 
 #Data Importation--------------------------------------------------------------------
 setwd("J:/C_Piedboeuf/Doc Admin/ING/Business Panel/Data")
